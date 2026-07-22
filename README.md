@@ -42,7 +42,7 @@ Designed with a clean, dark-zinc aesthetic inspired by **Linear** and **Vercel**
 
 1. **Clone or Download** this repository:
    ```bash
-   git clone https://github.com/YOUR_GITHUB_USERNAME/threads-unfollow-assistant.git
+   git clone https://github.com/azarafath/threads-unfollow-assistant.git
    ```
 2. Open your browser extensions page:
    - **Microsoft Edge**: `edge://extensions`
