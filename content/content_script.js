@@ -119,20 +119,22 @@
     dialog = document.querySelector('div[role="dialog"]') || document.body;
 
     // 1. Scan Followers Tab (Pengikut / Followers)
-    console.log('%c👥 [Threads Unfollow] STEP 1/2: Scanning Followers Tab (Pengikut)...', 'color: #6366f1; font-weight: bold;');
+    console.log('%c👥 [Threads Unfollow] STEP 1/2: Scanning Followers Tab...', 'color: #6366f1; font-weight: bold;');
     await switchToModalTab('followers');
-    const followers = await scrollAndHarvestItems('Followers');
+    const targetFollowersCount = getModalHeaderTargetCount('followers');
+    const followers = await scrollAndHarvestItems('Followers', targetFollowersCount);
     console.log(`✅ [Threads Unfollow] Harvested ${followers.length} Followers.`);
 
     // 2. Switch to Following Tab Header (Mengikuti / Following)
-    console.log('%c🔄 [Threads Unfollow] STEP 2/2: Switching to Following Tab Header (Mengikuti)...', 'color: #6366f1; font-weight: bold;');
+    console.log('%c🔄 [Threads Unfollow] STEP 2/2: Switching to Following Tab Header...', 'color: #6366f1; font-weight: bold;');
     const switched = await switchToModalTab('following');
     if (!switched) {
-      console.warn('⚠️ [Threads Unfollow] Could not switch to Following/Mengikuti tab header.');
+      console.warn('⚠️ [Threads Unfollow] Could not switch to Following tab header.');
     }
     await sleep(1500);
 
-    const following = await scrollAndHarvestItems('Following');
+    const targetFollowingCount = getModalHeaderTargetCount('following');
+    const following = await scrollAndHarvestItems('Following', targetFollowingCount);
     console.log(`✅ [Threads Unfollow] Harvested ${following.length} Following.`);
 
     return {
@@ -140,6 +142,37 @@
       followers,
       following
     };
+  }
+
+  // Parse header count (e.g. "Mengikuti 355" -> 355)
+  function getModalHeaderTargetCount(tabKeyword) {
+    const dialog = document.querySelector('div[role="dialog"]');
+    if (!dialog) return 0;
+
+    const dialogRect = dialog.getBoundingClientRect();
+    const headerCandidates = Array.from(dialog.querySelectorAll('div[role="tab"], button, div[role="button"], a, span, div')).filter(el => {
+      const elRect = el.getBoundingClientRect();
+      const relativeTop = elRect.top - dialogRect.top;
+      return relativeTop >= 0 && relativeTop < 120;
+    });
+
+    const keywords = tabKeyword === 'following' ? ['following', 'mengikuti'] : ['followers', 'pengikut'];
+
+    const targetTab = headerCandidates.find(el => {
+      const txt = (el.innerText || '').toLowerCase().trim();
+      return keywords.some(k => txt.includes(k));
+    });
+
+    if (targetTab) {
+      const txt = targetTab.innerText || '';
+      const numMatch = txt.match(/(\d+[\d,.]*)/);
+      if (numMatch) {
+        const count = parseInt(numMatch[1].replace(/[,.]/g, ''), 10);
+        console.log(`🎯 [Threads Unfollow] Target header count for "${tabKeyword}": ${count}`);
+        return count || 0;
+      }
+    }
+    return 0;
   }
 
   // --- FIND & CLICK FOLLOWERS BUTTON ON PROFILE HEADER ---
@@ -170,21 +203,19 @@
     return false;
   }
 
-  // --- SWITCH TABS SPECIFICALLY IN MODAL HEADER (Bilingual Support: English & Indonesian) ---
+  // --- SWITCH TABS SPECIFICALLY IN MODAL HEADER ---
   async function switchToModalTab(tabKeyword) {
     const dialog = document.querySelector('div[role="dialog"]');
     if (!dialog) return false;
 
     const dialogRect = dialog.getBoundingClientRect();
 
-    // Target elements inside modal top header area (relativeTop < 120px)
     const headerCandidates = Array.from(dialog.querySelectorAll('div[role="tab"], button, div[role="button"], a, span, div')).filter(el => {
       const elRect = el.getBoundingClientRect();
       const relativeTop = elRect.top - dialogRect.top;
       return relativeTop >= 0 && relativeTop < 120;
     });
 
-    // Bilingual Keyword Matching
     const keywords = tabKeyword === 'following' ? ['following', 'mengikuti'] : ['followers', 'pengikut'];
 
     const targetTab = headerCandidates.find(el => {
@@ -199,7 +230,7 @@
       console.log(`[Threads Unfollow] Switching modal header tab for "${tabKeyword}" (Found: "${targetTab.innerText.trim()}"):`, targetTab);
       const clickEl = targetTab.closest('div[role="tab"], button, div[role="button"]') || targetTab;
       clickEl.click();
-      await sleep(1500); // Wait for DOM list replacement
+      await sleep(1500);
       return true;
     }
 
@@ -231,17 +262,19 @@
     return maxScrollDiv || dialog;
   }
 
-  // Robust Auto-Scroll & Item Harvester
-  async function scrollAndHarvestItems(tabName = 'Items') {
+  // Target-Count Driven Auto-Scroll & Item Harvester
+  async function scrollAndHarvestItems(tabName = 'Items', targetCount = 0) {
     const dialog = document.querySelector('div[role="dialog"]') || document.body;
     const scrollContainer = getModalScrollContainer(dialog);
 
     const list = [];
     const seen = new Set();
     let noNewAttempts = 0;
-    const maxScrolls = 200; // Increased to 200 for large accounts with 500+ following
+    const maxScrolls = 350;
+    // Higher no-new threshold (12) if targetCount not yet reached
+    const maxNoNewThreshold = 12;
 
-    console.log(`📜 [Threads Unfollow] Starting continuous scroll for ${tabName}...`);
+    console.log(`📜 [Threads Unfollow] Starting continuous scroll for ${tabName} (Goal: ${targetCount > 0 ? targetCount : 'all'} accounts)...`);
 
     for (let scrollIdx = 1; scrollIdx <= maxScrolls; scrollIdx++) {
       let addedInScroll = 0;
@@ -280,26 +313,35 @@
         }
       });
 
+      if (targetCount > 0 && list.length >= targetCount) {
+        console.log(`🎉 [Threads Unfollow] Reached target goal! Harvested 100% (${list.length}/${targetCount}) ${tabName}.`);
+        break;
+      }
+
       if (addedInScroll > 0) {
-        console.log(`➡️ [Threads Unfollow] ${tabName} Scroll #${scrollIdx}: +${addedInScroll} new accounts (Total: ${list.length})`);
+        const goalStr = targetCount > 0 ? `/${targetCount}` : '';
+        console.log(`➡️ [Threads Unfollow] ${tabName} Scroll #${scrollIdx}: +${addedInScroll} new accounts (Total: ${list.length}${goalStr})`);
         noNewAttempts = 0;
       } else {
         noNewAttempts++;
-        console.log(`⏳ [Threads Unfollow] ${tabName} Scroll #${scrollIdx}: Waiting network fetch... (${noNewAttempts}/6)`);
-        if (noNewAttempts >= 6) {
-          console.log(`✅ [Threads Unfollow] ${tabName} scan complete! All ${list.length} accounts harvested.`);
+        console.log(`⏳ [Threads Unfollow] ${tabName} Scroll #${scrollIdx}: Waiting network fetch... (${noNewAttempts}/${maxNoNewThreshold})`);
+        if (noNewAttempts >= maxNoNewThreshold) {
+          console.log(`✅ [Threads Unfollow] ${tabName} scan complete! Harvested ${list.length} accounts.`);
           break;
         }
       }
 
+      // Multi-Event Scroll Triggers
       if (scrollContainer) {
-        scrollContainer.scrollTop = scrollContainer.scrollHeight;
+        scrollContainer.scrollTop = scrollContainer.scrollHeight + 2000;
+        scrollContainer.scrollBy({ top: 1500, behavior: 'smooth' });
         scrollContainer.dispatchEvent(new Event('scroll', { bubbles: true }));
+        scrollContainer.dispatchEvent(new WheelEvent('wheel', { deltaY: 1000, bubbles: true }));
       } else {
         window.scrollTo(0, document.body.scrollHeight);
       }
       
-      await sleep(1000);
+      await sleep(1100);
     }
 
     return list;
@@ -327,7 +369,7 @@
 
     let targetButton = null;
 
-    for (let scrollStep = 0; scrollStep < 50; scrollStep++) {
+    for (let scrollStep = 0; scrollStep < 60; scrollStep++) {
       const userLink = modalDialog.querySelector(`a[href*="/@${targetHandle}"]`);
       if (userLink) {
         const parentRow = userLink.closest('[data-pressable-container="true"]') || userLink.closest('div[style*="flex"]') || userLink.closest('div');
