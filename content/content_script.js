@@ -144,34 +144,50 @@
     };
   }
 
-  // Parse header count (e.g. "Mengikuti 355" -> 355)
+  // Parse exact header tab count (e.g. "Mengikuti \n 355" -> 355)
   function getModalHeaderTargetCount(tabKeyword) {
     const dialog = document.querySelector('div[role="dialog"]');
     if (!dialog) return 0;
 
     const dialogRect = dialog.getBoundingClientRect();
-    const headerCandidates = Array.from(dialog.querySelectorAll('div[role="tab"], button, div[role="button"], a, span, div')).filter(el => {
+    const keywords = tabKeyword === 'following' ? ['following', 'mengikuti'] : ['followers', 'pengikut'];
+
+    const headerTabs = Array.from(dialog.querySelectorAll('div[role="tab"], button, div[role="button"], a, div')).filter(el => {
       const elRect = el.getBoundingClientRect();
       const relativeTop = elRect.top - dialogRect.top;
       return relativeTop >= 0 && relativeTop < 120;
     });
 
-    const keywords = tabKeyword === 'following' ? ['following', 'mengikuti'] : ['followers', 'pengikut'];
-
-    const targetTab = headerCandidates.find(el => {
-      const txt = (el.innerText || '').toLowerCase().trim();
+    const targetTabContainer = headerTabs.find(el => {
+      const txt = (el.innerText || '').toLowerCase();
       return keywords.some(k => txt.includes(k));
     });
 
-    if (targetTab) {
-      const txt = targetTab.innerText || '';
-      const numMatch = txt.match(/(\d+[\d,.]*)/);
-      if (numMatch) {
-        const count = parseInt(numMatch[1].replace(/[,.]/g, ''), 10);
-        console.log(`🎯 [Threads Unfollow] Target header count for "${tabKeyword}": ${count}`);
-        return count || 0;
+    if (targetTabContainer) {
+      // 1. Inspect span[title] inside tab container
+      const spansWithTitle = Array.from(targetTabContainer.querySelectorAll('span[title]'));
+      for (const span of spansWithTitle) {
+        const titleVal = span.getAttribute('title');
+        if (titleVal && /^\d+$/.test(titleVal.replace(/[,.]/g, ''))) {
+          const parsed = parseInt(titleVal.replace(/[,.]/g, ''), 10);
+          console.log(`🎯 [Threads Unfollow] Parsed span[title] target count for "${tabKeyword}": ${parsed}`);
+          return parsed;
+        }
+      }
+
+      // 2. Extract digits from tab text content
+      const allText = targetTabContainer.innerText || '';
+      const matches = allText.match(/(\d+[\d,.]*)/g);
+      if (matches && matches.length > 0) {
+        const nums = matches.map(m => parseInt(m.replace(/[,.]/g, ''), 10)).filter(n => !isNaN(n));
+        if (nums.length > 0) {
+          const parsed = Math.max(...nums);
+          console.log(`🎯 [Threads Unfollow] Parsed text target count for "${tabKeyword}": ${parsed}`);
+          return parsed;
+        }
       }
     }
+
     return 0;
   }
 
@@ -271,7 +287,6 @@
     const seen = new Set();
     let noNewAttempts = 0;
     const maxScrolls = 350;
-    // Higher no-new threshold (12) if targetCount not yet reached
     const maxNoNewThreshold = 12;
 
     console.log(`📜 [Threads Unfollow] Starting continuous scroll for ${tabName} (Goal: ${targetCount > 0 ? targetCount : 'all'} accounts)...`);
