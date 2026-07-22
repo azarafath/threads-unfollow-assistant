@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Threads Unfollow Assistant</title>
+  <link rel="stylesheet" href="popup.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div class="app-container">
+    
+    <!-- Clean Header -->
+    <header class="app-header">
+      <div class="brand">
+        <img src="../assets/icon48.png" class="brand-logo-img" alt="Threads Unfollow Assistant Logo">
+        <div>
+          <div class="brand-title">Threads Unfollow</div>
+          <div class="brand-sub">Semi-Auto Assistant</div>
+        </div>
+      </div>
+      <div class="platform-pill">
+        <span class="dot-online"></span>
+        <span id="activePlatform">Threads</span>
+      </div>
+    </header>
+
+    <!-- Segmented Tab Nav -->
+    <nav class="nav-segmented">
+      <button class="seg-btn active" data-tab="tab-scan">Ringkasan</button>
+      <button class="seg-btn" data-tab="tab-list">
+        Daftar Akun
+        <span class="counter-badge" id="nonFollowersBadge">0</span>
+      </button>
+      <button class="seg-btn" data-tab="tab-settings">Pengaturan</button>
+    </nav>
+
+    <!-- Tab Pages Container -->
+    <main class="tab-content">
+      
+      <!-- TAB 1: OVERVIEW & SCAN -->
+      <section id="tab-scan" class="tab-page active">
+        <div class="overview-box">
+          <h2>Pindaian Koneksi Threads</h2>
+          <div class="btn-group" style="margin-top: 10px;">
+            <button id="btnStartScan" class="btn btn-primary">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"></path></svg>
+              Pindai
+            </button>
+            <button id="btnStartSemiAutoOverview" class="btn btn-danger">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><line x1="18" y1="8" x2="23" y2="13"></line><line x1="23" y1="8" x2="18" y2="13"></line></svg>
+              Unfollow Semi-Auto
+            </button>
+            <button id="btnClearData" class="btn btn-secondary">Reset</button>
+          </div>
+        </div>
+
+        <!-- Metric Grid -->
+        <div class="metrics-grid">
+          <div class="metric-card">
+            <div class="metric-label">Following</div>
+            <div class="metric-value" id="statFollowing">0</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-label">Followers</div>
+            <div class="metric-value" id="statFollowers">0</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-label">Tak Follback</div>
+            <div class="metric-value danger" id="statNonFollowers">0</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-label">Whitelisted</div>
+            <div class="metric-value indigo" id="statWhitelist">0</div>
+          </div>
+        </div>
+
+        <!-- Live Queue Progress Bar -->
+        <div class="progress-card hidden" id="queueStatusCard">
+          <div class="progress-header">
+            <span>⚡ Sesi Semi-Auto Berjalan</span>
+            <button id="btnStopQueue" class="btn btn-danger btn-xs">Hentikan</button>
+          </div>
+          <div class="progress-bar-track">
+            <div class="progress-bar-fill" id="progressBarFill" style="width: 0%"></div>
+          </div>
+          <div class="progress-footer">
+            <span id="queueProgressText">0 / 0 diproses</span>
+            <span id="queueDelayCountdown" class="countdown-text">Jeda: --s</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 2: ACCOUNTS LIST -->
+      <section id="tab-list" class="tab-page">
+        <div class="toolbar">
+          <div class="search-field">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+            <input type="text" id="searchInput" placeholder="Cari @username Threads...">
+          </div>
+          <div class="filter-bar">
+            <button class="chip-btn active" data-filter="all">Semua (<span id="countFilterAll">0</span>)</button>
+            <button class="chip-btn" data-filter="nonfollowers">Tak Follback (<span id="countFilterNon">0</span>)</button>
+            <button class="chip-btn" data-filter="whitelisted">Whitelist (<span id="countFilterWhite">0</span>)</button>
+          </div>
+        </div>
+
+        <div class="selection-row">
+          <label class="checkbox-label">
+            <input type="checkbox" id="selectAllCheckbox">
+            Pilih Semua Non-Follback (<span id="selectedCount">0</span>)
+          </label>
+          <div class="btn-group">
+            <button id="btnBulkWhitelist" class="btn btn-secondary btn-xs">Whitelist</button>
+            <button id="btnStartSemiAuto" class="btn btn-danger btn-xs">Unfollow Semi-Auto</button>
+          </div>
+        </div>
+
+        <div class="accounts-scroll" id="accountsListContainer">
+          <div class="empty-box">
+            Belum ada data pindaian. Silakan jalankan pindaian terlebih dahulu.
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 3: SAFETY SETTINGS -->
+      <section id="tab-settings" class="tab-page">
+        <div class="settings-panel">
+          <h3>Pengaturan & Jeda</h3>
+          <p>Setiap tindakan unfollow akan diberi jeda waktu acak agar tidak memicu pembatasan akun Threads.</p>
+
+          <div class="form-item" style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border-subtle); padding-bottom: 10px;">
+            <div>
+              <div style="font-weight: 600; font-size: 11px;">Mode Fast (Tanpa Jeda)</div>
+              <span class="hint">Langsung unfollow akun berikutnya tanpa jeda waktu.</span>
+            </div>
+            <label class="switch">
+              <input type="checkbox" id="toggleFastMode">
+              <span class="slider round"></span>
+            </label>
+          </div>
+
+          <div class="form-item">
+            <div class="form-item-header">
+              <span>Minimal Jeda Per Aksi</span>
+              <span class="val-badge" id="valMinDelay">8 Detik</span>
+            </div>
+            <input type="range" id="inputMinDelay" min="0" max="30" value="8">
+          </div>
+
+          <div class="form-item">
+            <div class="form-item-header">
+              <span>Maksimal Jeda Per Aksi</span>
+              <span class="val-badge" id="valMaxDelay">18 Detik</span>
+            </div>
+            <input type="range" id="inputMaxDelay" min="8" max="60" value="18">
+            <span class="hint">Extension akan memilih angka acak di antara Min & Max.</span>
+          </div>
+
+          <button id="btnSaveSettings" class="btn btn-primary btn-full">Simpan Pengaturan</button>
+        </div>
+      </section>
+
+    </main>
+
+    <!-- Clean Footer -->
+    <footer class="app-footer">
+      <span id="globalStatusMsg">Siap digunakan di Threads</span>
+      <span>v1.0</span>
+    </footer>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

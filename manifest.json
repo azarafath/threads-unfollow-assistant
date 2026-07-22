@@ -1,0 +1,45 @@
+{
+  "manifest_version": 3,
+  "name": "Threads Unfollow Assistant (Semi-Auto)",
+  "version": "1.0.0",
+  "description": "Deteksi siapa yang tidak follow back akun Threads Anda di threads.com dan lakukan unfollow semi-otomatis dengan jeda waktu yang aman.",
+  "icons": {
+    "16": "assets/icon16.png",
+    "48": "assets/icon48.png",
+    "128": "assets/icon128.png"
+  },
+  "action": {
+    "default_popup": "popup/popup.html",
+    "default_icon": {
+      "16": "assets/icon16.png",
+      "48": "assets/icon48.png",
+      "128": "assets/icon128.png"
+    }
+  },
+  "permissions": [
+    "storage",
+    "activeTab",
+    "scripting"
+  ],
+  "host_permissions": [
+    "https://*.threads.com/*",
+    "https://*.threads.net/*",
+    "https://*.instagram.com/*"
+  ],
+  "background": {
+    "service_worker": "background/service_worker.js"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://*.threads.com/*",
+        "https://*.threads.net/*",
+        "https://*.instagram.com/*"
+      ],
+      "js": [
+        "content/content_script.js"
+      ],
+      "run_at": "document_end"
+    }
+  ]
+}
