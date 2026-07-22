@@ -54,6 +54,31 @@ Designed with a clean, dark-zinc aesthetic inspired by **Linear** and **Vercel**
 
 ---
 
+## 📦 How to Pack Extension (.crx & .pem)
+
+If you want to package this extension into a single `.crx` file for distribution:
+
+### 1. First Time Packing (Generates `.crx` & `.pem` Private Key)
+1. Open `edge://extensions` or `chrome://extensions`.
+2. Enable **Developer mode**.
+3. Click **Pack extension** (Bungkus Ekstensi).
+4. For **Extension root directory**, select your `EXTENSION` folder path.
+5. Leave **Private key file** blank (empty).
+6. Click **Pack Extension**.
+7. Browser will automatically create two files in your parent folder:
+   - `EXTENSION.crx` (The packed browser extension)
+   - `EXTENSION.pem` (Your **Private Key**! Keep this safe!).
+
+> ⚠️ **IMPORTANT**: Save your `.pem` file in a secure location. You **MUST** use this `.pem` key when repacking future updates to maintain the same Extension ID.
+
+### 2. Updating an Existing Packed Extension
+1. Open **Pack extension** again.
+2. Select the `EXTENSION` folder as the root directory.
+3. For **Private key file**, select your previously saved `EXTENSION.pem` file.
+4. Click **Pack Extension**. The browser will output the updated `.crx` with the exact same Extension ID.
+
+---
+
 ## 📖 How to Use
 
 1. Open **[threads.com](https://www.threads.com)** in your browser and log in.
