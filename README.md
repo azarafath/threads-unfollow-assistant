@@ -115,6 +115,18 @@ EXTENSION/
 
 ---
 
+## ⚠️ Disclaimer & Limitation of Liability (DYOR)
+
+> [!CAUTION]
+> **USE AT YOUR OWN RISK / DO YOUR OWN RESEARCH (DYOR)**
+>
+> - **Educational & Personal Use Only**: This extension is an open-source automation utility intended strictly for personal account management and educational purposes.
+> - **No Official Affiliation**: This tool is **NOT** affiliated, associated, authorized, endorsed by, or in any way officially connected with **Threads**, **Meta Platforms, Inc.**, or any of their subsidiaries.
+> - **Limitation of Liability**: Social media platforms maintain strict rate limits and automated behavior detection algorithms. The developer (**Ahmad Fathoni / @azarafath**) assumes **NO RESPONSIBILITY OR LIABILITY** for any account restrictions, suspensions, shadowbans, temporary blocks, or consequences resulting from the use or misuse of this extension.
+> - **User Responsibility**: Users are solely responsible for complying with Threads' Terms of Service and applying reasonable delays when managing their social accounts.
+
+---
+
 ## 📄 License
 
 Distributed under the MIT License. See `LICENSE` for details.
