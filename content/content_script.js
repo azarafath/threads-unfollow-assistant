@@ -144,13 +144,14 @@
     };
   }
 
-  // Parse exact header tab count (e.g. "Mengikuti \n 355" -> 355)
+  // Parse exact header tab count with strict tab isolation
   function getModalHeaderTargetCount(tabKeyword) {
     const dialog = document.querySelector('div[role="dialog"]');
     if (!dialog) return 0;
 
     const dialogRect = dialog.getBoundingClientRect();
     const keywords = tabKeyword === 'following' ? ['following', 'mengikuti'] : ['followers', 'pengikut'];
+    const oppositeKeywords = tabKeyword === 'following' ? ['followers', 'pengikut'] : ['following', 'mengikuti'];
 
     const headerTabs = Array.from(dialog.querySelectorAll('div[role="tab"], button, div[role="button"], a, div')).filter(el => {
       const elRect = el.getBoundingClientRect();
@@ -158,13 +159,19 @@
       return relativeTop >= 0 && relativeTop < 120;
     });
 
+    // Isolate specific tab container (Exclude parent container that holds both tabs)
     const targetTabContainer = headerTabs.find(el => {
+      const txt = (el.innerText || '').toLowerCase();
+      const hasKeyword = keywords.some(k => txt.includes(k));
+      const hasOpposite = oppositeKeywords.some(o => txt.includes(o));
+      return hasKeyword && !hasOpposite;
+    }) || headerTabs.find(el => {
       const txt = (el.innerText || '').toLowerCase();
       return keywords.some(k => txt.includes(k));
     });
 
     if (targetTabContainer) {
-      // 1. Inspect span[title] inside tab container
+      // 1. Inspect span[title] inside specific tab container
       const spansWithTitle = Array.from(targetTabContainer.querySelectorAll('span[title]'));
       for (const span of spansWithTitle) {
         const titleVal = span.getAttribute('title');
@@ -175,7 +182,7 @@
         }
       }
 
-      // 2. Extract digits from tab text content
+      // 2. Extract digits from specific tab text content
       const allText = targetTabContainer.innerText || '';
       const matches = allText.match(/(\d+[\d,.]*)/g);
       if (matches && matches.length > 0) {
